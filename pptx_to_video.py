@@ -83,7 +83,7 @@ def pptx_video(
     print('done!')
     bar.finish()
 
-def _pptx_pdf(pptx_file)->None:
+def _pptx_pdf(pptx_file) -> None:
     """Convert pptx to pdf."""
     pptx_file = os.path.abspath(pptx_file)
     powerpoint = comtypes.client.CreateObject('Powerpoint.Application')
@@ -114,9 +114,8 @@ def _speech_text(slide) -> str:
     return speech
 
 def main():
-    
+    """Main code for script."""
     print('This script converts a powerpoint presentation (pptx) to video using text to speech with the presenter notes or slide text.')
-
     parser = argparse.ArgumentParser()
     required = parser.add_argument_group('required arguments')
     required.add_argument('-p', '--pptx', type=str, metavar='pptx_file', help='Input PPTX file to convert.', required = True)

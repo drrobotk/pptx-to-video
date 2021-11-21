@@ -1,0 +1,5 @@
+gTTS>=2.2
+urllib3>=1.2
+python-pptx>=0.6
+PyMuPDF>=1.1
+progress>=1.6

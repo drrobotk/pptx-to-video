@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ #!/usr/bin/env python
 
 import os, argparse, re, fitz, shutil, comtypes.client
 from progress.bar import Bar
@@ -11,10 +11,10 @@ __author__ = ['Dr. Usman Kayani']
 def pptx_video(
     pptx_file: str,
     output_file: str,
-)->None:
+) -> None:
     """
-    Convert a powerpoint presentation (pptx) to video (mp4) using text-to-speech
-    with the presenter notes or slide text.
+    Convert a powerpoint presentation (pptx) to video (mp4) using 
+    text-to-speech with the presenter notes or slide text.
     
     Parameters
     ----------
@@ -63,28 +63,79 @@ def pptx_video(
             tts = gTTS(text=speech, lang='en')
         bar.next()
 
-        image_path = os.path.join(f'tmp\{name}_slide_{i+1}.png')		 
-        audio_path = os.path.join(f'tmp\{name}_slide_{i+1}.mp3')
-        out_path_mp4 = os.path.join(f'tmp\{name}_slide_{i+1}.mp4')
-
+        file_name = f'tmp\{name}_slide_{i+1}'
+        image_path, audio_path, out_path_mp4 = _get_filepaths(file_name)
+            
         pix.save(image_path)
         tts.save(audio_path)
         bar.next()
-        call(['ffmpeg', '-y', '-loop', '1', '-i', image_path, '-i', audio_path, '-c:v', 'libx264', '-tune', 'stillimage',
-                  '-c:a', 'aac', '-b:a', '192k', '-pix_fmt', 'yuv420p', '-shortest', out_path_mp4], stdout=DEVNULL, stderr=STDOUT)
+        ffmpeg_args = f'-y -loop 1 -i {image_path} -i {out_path_mp4} -c:v libx264 ' + \
+        f'-tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest {output_file}'
+        _execute_cmd(f'ffmepg {ffmpeg_args}')
         bar.next()
         f = open('tmp\list.txt', 'w')
         f.write(f'file tmp/{name}_slide_{i+1}.mp4\n')
     f.close()
 
     print(f'\n Combining the MP4s for all slides into the single output video {output_file}...', end='')
-    call(['ffmpeg', '-y', '-f', 'concat', '-i', 'tmp\list.txt', '-c', 'copy', output_file], stdout=DEVNULL, stderr=STDOUT)
+    ffmepg_args = f'-y -f concat -i tmp\list.txt -c copy {output_file}'
+    _execute_cmd(f'ffmpeg {ffmepg_args}')
+    print('Done!')
+    shutil.rmtree('tmp')
+    os.remove(pdf_file)
     shutil.rmtree('tmp', ignore_errors=True)
     print('done!')
     bar.finish()
 
-def _pptx_pdf(pptx_file) -> None:
-    """Convert pptx to pdf."""
+def _get_filepaths(
+    file_name: str,
+) -> str:
+    """
+    Get file path.
+    
+    Parameters
+    ----------
+    file_name: str
+        File name.
+    
+    Returns
+    -------
+    str
+        File path.
+    """
+    file_types = ('mp3', 'png', 'mp4')
+    return [
+        os.path.join(f'{file_name}.{type}') for type in file_types
+    ]
+
+def _execute_cmd(command: str) -> None:
+    """
+    Execute a command.
+    
+    Parameters
+    ----------
+    command: str
+        Command to execute.
+
+    Returns
+    -------
+    None
+    """
+    call(command.split(' '), stdout=DEVNULL, stderr=STDOUT)
+
+def _pptx_pdf(pptx_file: str) -> None:
+    """
+    Convert pptx to pdf.
+    
+    Parameters
+    ----------
+    pptx_file: str
+        Input file path to pptx file to convert.
+
+    Returns
+    -------
+    None
+    """
     pptx_file = os.path.abspath(pptx_file)
     powerpoint = comtypes.client.CreateObject('Powerpoint.Application')
     powerpoint.Visible = 1
@@ -93,8 +144,20 @@ def _pptx_pdf(pptx_file) -> None:
     deck.Close()
     powerpoint.Quit()
 
-def _speech_text(slide) -> str:
-    """Obtain speech text from slide."""
+def _speech_text(slide:str) -> str:
+    """
+    Obtain speech text from slide.
+
+    Parameters
+    ----------
+    slide: str
+        Slide to get speech text from.
+
+    Returns
+    -------
+    str
+        Speech text.
+    """
     slide_text_arr = []
     presenter_notes = slide.notes_slide.notes_text_frame.text
 

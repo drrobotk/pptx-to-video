@@ -71,19 +71,19 @@ def pptx_video(
         bar.next()
         ffmpeg_args = f'-y -loop 1 -i {image_path} -i {out_path_mp4} -c:v libx264 ' + \
         f'-tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest {output_file}'
-        _execute_cmd(f'ffmepg {ffmpeg_args}')
+        _execute_cmd(f'ffmpeg {ffmpeg_args}')
         bar.next()
         f = open('tmp\list.txt', 'w')
         f.write(f'file tmp/{name}_slide_{i+1}.mp4\n')
     f.close()
 
     print(f'\n Combining the MP4s for all slides into the single output video {output_file}...', end='')
-    ffmepg_args = f'-y -f concat -i tmp\list.txt -c copy {output_file}'
-    _execute_cmd(f'ffmpeg {ffmepg_args}')
+    ffmpeg_args = f'-y -f concat -i tmp\list.txt -c copy {output_file}'
+    _execute_cmd(f'ffmpeg {ffmpeg_args}')
     print('Done!')
-    shutil.rmtree('tmp')
+    # shutil.rmtree('tmp')
     os.remove(pdf_file)
-    shutil.rmtree('tmp', ignore_errors=True)
+    # shutil.rmtree('tmp', ignore_errors=True)
     print('done!')
     bar.finish()
 
@@ -103,7 +103,7 @@ def _get_filepaths(
     str
         File path.
     """
-    file_types = ('mp3', 'png', 'mp4')
+    file_types = ('png', 'mp3', 'mp4')
     return [
         os.path.join(f'{file_name}.{type}') for type in file_types
     ]

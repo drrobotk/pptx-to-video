@@ -47,43 +47,55 @@ def pptx_video(
     bar = Bar('Processing slides', max=5*N, suffix='%(percent)d%%')
     for slide in prs.slides:
         i = prs.slides.index(slide)
-
-        page = doc.load_page(i)
-        speech = _speech_text(slide)
-        bar.next()
-        
-        pix = page.get_pixmap()
-        bar.next()
-
-        # Get audio from text-to-speech on slide text.
-        try:
-            tts = gTTS(text=speech, lang='en')
-        except:
-            notes = ' '.join(re.split('\s+', notes, flags=re.UNICODE))
-            tts = gTTS(text=speech, lang='en')
-        bar.next()
-
         file_name = f'tmp\{name}_slide_{i+1}'
         image_path, audio_path, out_path_mp4 = _get_filepaths(file_name)
+
+        f = open('tmp\list.txt', 'a')
+        f.write(f'file tmp/{name}_slide_{i+1}.mp4\n')
+
+        if os.path.exists(out_path_mp4):
+            bar.next()
+            continue
+
+        if not os.path.exists(image_path) or not os.path.exists(audio_path):
+            page = doc.load_page(i)
+            speech = _speech_text(slide).replace('[CLICK]', '')
+            bar.next()
             
-        pix.save(image_path)
-        tts.save(audio_path)
-        bar.next()
-        ffmpeg_args = f'-y -loop 1 -i {image_path} -i {out_path_mp4} -c:v libx264 ' + \
-        f'-tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest {output_file}'
+            pix = page.get_pixmap()
+            bar.next()
+
+            # Get audio from text-to-speech on slide text.
+            try:
+                tts = gTTS(text=speech, lang='en')
+            except:
+                notes = ' '.join(re.split('\s+', notes, flags=re.UNICODE))
+                tts = gTTS(text=speech, lang='en')
+            bar.next()
+
+            pix.save(image_path)
+            tts.save(audio_path)
+            bar.next()
+            
+        ffmpeg_args = f'-y -loop 1 -i {image_path} -i {audio_path} -c:v libx264 ' + \
+        f'-tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest {out_path_mp4}'
         _execute_cmd(f'ffmpeg {ffmpeg_args}')
         bar.next()
-        f = open('tmp\list.txt', 'w')
-        f.write(f'file tmp/{name}_slide_{i+1}.mp4\n')
-    f.close()
+    try:
+        f.close()
+    except UnboundLocalError:
+        pass
 
     print(f'\n Combining the MP4s for all slides into the single output video {output_file}...', end='')
     ffmpeg_args = f'-y -f concat -i tmp\list.txt -c copy {output_file}'
     _execute_cmd(f'ffmpeg {ffmpeg_args}')
     print('Done!')
     # shutil.rmtree('tmp')
-    os.remove(pdf_file)
-    # shutil.rmtree('tmp', ignore_errors=True)
+    try:
+        os.remove(pdf_file)
+    except:
+        pass
+    shutil.rmtree('tmp', ignore_errors=True)
     print('done!')
     bar.finish()
 
